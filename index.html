@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚡ ZIK BLEST ⚡ - Futuristic Neon Block Puzzle</title>
+    <style>
+        /* ==========================================
+           1. RESET & VARIABLES (THEMES)
+           ========================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        :root {
+            --bg-grad: linear-gradient(135deg, #050515 0%, #0b0b28 50%, #1a052e 100%);
+            --neon-glow: 0 0 10px #00f0ff, 0 0 20px #00f0ff, 0 0 30px #00f0ff;
+            --neon-text: #00f0ff;
+            --neon-accent: #ff007f;
+            --panel-bg: rgba(15, 15, 35, 0.65);
+            --panel-border: rgba(0, 240, 255, 0.3);
+            --grid-bg: rgba(255, 255, 255, 0.03);
+            --grid-line: rgba(255, 255, 255, 0.07);
+            --font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Light Mode Override */
+        body.theme-light {
+            --bg-grad: linear-gradient(135deg, #e0e5ff 0%, #f0f2ff 50%, #fff0f8 100%);
+            --neon-glow: 0 0 8px #0077ff, 0 0 15px #ff007f;
+            --neon-text: #0055ff;
+            --neon-accent: #d0006f;
+            --panel-bg: rgba(255, 255, 255, 0.8);
+            --panel-border: rgba(0, 85, 255, 0.3);
+            --grid-bg: rgba(0, 0, 0, 0.02);
+            --grid-line: rgba(0, 0, 0, 0.08);
+            color: #111;
+        }
+
+        /* Neon Overdrive Mode Override */
+        body.theme-neon-overdrive {
+            --bg-grad: linear-gradient(135deg, #000 0%, #0d001a 100%);
+            --neon-glow: 0 0 15px #39ff14, 0 0 30px #ff007f, 0 0 45px #00f0ff;
+            --neon-text: #39ff14;
+            --neon-accent: #ff00ff;
+            --panel-bg: rgba(0, 0, 0, 0.85);
+            --panel-border: rgba(57, 255, 20, 0.5);
+            --grid-bg: rgba(57, 255, 20, 0.05);
+            --grid-line: rgba(255, 0, 255, 0.15);
+        }
+
+        body {
+            background: var(--bg-grad);
+            font-family: var(--font-family);
+            color: #fff;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Ambient Canvas Background (Particles) */
+        #bgCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ==========================================
+           2. LAYOUT MAIN & CONTAINER
+           ========================================== */
+        .game-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 480px;
+            height: 100%;
+            max-height: 920px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        /* Header Style */
+        header {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .logo {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: #fff;
+            text-shadow: var(--neon-glow);
+            animation: pulseGlow 2s infinite ease-in-out;
+            margin-bottom: 5px;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { text-shadow: var(--neon-glow); opacity: 1; }
+            50% { text-shadow: 0 0 5px var(--neon-text), 0 0 12px var(--neon-accent); opacity: 0.9; }
+        }
+
+        /* ==========================================
+           3. DASHBOARD STATISTIK
+           ========================================== */
+        .stats-container {
+            width: 100%;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 12px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 6px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #aaa;
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--neon-text);
+            text-shadow: 0 0 5px rgba(0, 240, 255, 0.5);
+        }
+
+        /* Level & XP Progress */
+        .level-container {
+            grid-column: span 3;
+            display: flex;
+            flex-direction: column;
+            margin-top: 4px;
+        }
+
+        .progress-bar-outer {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--neon-text), var(--neon-accent));
+            box-shadow: 0 0 8px var(--neon-text);
+            transition: width 0.3s ease;
+        }
+
+        /* ==========================================
+           4. BOARD GAME (8x8 GRID)
+           ========================================== */
+        .board-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 8px;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            margin: 10px 0;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 4px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .cell {
+            background: var(--grid-bg);
+            border: 1px solid var(--grid-line);
+            border-radius: 6px;
+            position: relative;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        /* Representasi Blok Terpasang */
+        .cell.filled {
+            box-shadow: inset 0 0 12px rgba(255,255,255,0.2), 0 0 8px rgba(0,0,0,0.5);
+            animation: blockSpawn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes blockSpawn {
+            0% { transform: scale(0.7); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Efek khusus saat baris/kolom hancur */
+        .cell.flash-destroy {
+            animation: cellFlash 0.4s ease-out forwards;
+        }
+
+        @keyframes cellFlash {
+            0% { background-color: #fff; box-shadow: 0 0 30px #fff; transform: scale(1.1); }
+            50% { background-color: var(--neon-accent); box-shadow: 0 0 20px var(--neon-accent); transform: scale(0.9); }
+            100% { background-color: transparent; box-shadow: none; transform: scale(1); }
+        }
+
+        /* Screen Shake Target */
+        .shake-screen {
+            animation: screenShake 0.4s ease-in-out;
+        }
+
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-3px, 2px); }
+            20%, 40%, 60%, 80% { transform: translate(3px, -2px); }
+        }
+
+        /* ==========================================
+           5. DOCK BLOCK CHOICES (3 SLOTS)
+           ========================================== */
+        .dock-container {
+            width: 100%;
+            height: 120px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            margin-bottom: 5px;
+        }
+
+        .dock-slot {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: rgba(0,0,0,0.15);
+            border-radius: 8px;
+            border: 1px dashed rgba(255,255,255,0.05);
+        }
+
+        /* Mini matrix block di dalam dock */
+        .mini-block {
+            display: grid;
+            position: absolute;
+            cursor: grab;
+            transition: transform 0.1s;
+            transform-origin: center center;
+            z-index: 50;
+        }
+
+        .mini-block:active {
+            cursor: grabbing;
+        }
+
+        .mini-cell {
+            border-radius: 3px;
+            margin: 1px;
+            box-shadow: inset 0 0 4px rgba(255,255,255,0.2);
+        }
+
+        /* Dragging State Global */
+        .dragging {
+            opacity: 0.9;
+            transform: scale(1.1) translateY(-40px) !important;
+            pointer-events: none; /* Penting agar elementFromPoint mendeteksi cell di bawahnya */
+            box-shadow: 0 20px 30px rgba(0,0,0,0.5);
+        }
+
+        /* ==========================================
+           6. POPUPS & OVERLAYS (UI GAME)
+           ========================================== */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 15, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .menu-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 30px;
+            text-shadow: var(--neon-glow);
+            color: #fff;
+        }
+
+        .btn {
+            width: 100%;
+            max-width: 240px;
+            padding: 14px 28px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--neon-text);
+            color: #fff;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .btn:hover, .btn:active {
+            background: var(--neon-text);
+            color: #000;
+            box-shadow: var(--neon-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn-accent {
+            border-color: var(--neon-accent);
+            box-shadow: 0 0 10px rgba(255, 0, 127, 0.2);
+        }
+        .btn-accent:hover, .btn-accent:active {
+            background: var(--neon-accent);
+            color: #fff;
+            box-shadow: 0 0 15px var(--neon-accent), 0 0 25px var(--neon-accent);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 240px;
+        }
+        .btn-group .btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        /* Setting Controls */
+        .setting-row {
+            width: 100%;
+            max-width: 260px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+            background: rgba(255,255,255,0.03);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .setting-row label {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .setting-row input[type="range"] {
+            width: 100px;
+            accent-color: var(--neon-text);
+        }
+
+        .select-custom {
+            background: #111;
+            color: #fff;
+            border: 1px solid var(--neon-text);
+            padding: 4px 8px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        /* In-Game Top Control Row */
+        .top-controls {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .icon-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* ==========================================
+           7. WORD POP BLOW EFFECTS (GOOD, GREAT, etc.)
+           ========================================== */
+        .announcer-layer {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 80;
+            text-align: center;
+            width: 100%;
+        }
+
+        .announcer-text {
+            font-size: 3rem;
+            font-weight: 900;
+            font-style: italic;
+            color: #fff;
+            text-shadow: var(--neon-glow);
+            opacity: 0;
+            transform: scale(0.3) rotate(-5deg);
+            display: none;
+        }
+
+        .announcer-text.pop-anim {
+            display: block;
+            animation: textPopEffect 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes textPopEffect {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); }
+            30% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+            70% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(5deg); }
+            100% { opacity: 0; transform: translate(-50%, -60%) scale(0.8) rotate(0deg); }
+        }
+
+        /* Combo indicator mini */
+        .combo-badge {
+            font-size: 1.5rem;
+            color: var(--neon-accent);
+            font-weight: 800;
+            margin-top: 5px;
+            text-shadow: 0 0 8px var(--neon-accent);
+        }
+
+        /* ==========================================
+           8. PLACEHOLDER MONETISASI & FOOTER
+           ========================================== */
+        .ad-banner-placeholder {
+            width: 100%;
+            height: 52px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 10px;
+            position: relative;
+        }
+        .ad-banner-placeholder::before {
+            content: "ADVERTISEMENT BANNER PLACEHOLDER";
+            letter-spacing: 1px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+            font-size: 0.7rem;
+        }
+        .footer-links a {
+            color: #555;
+            text-decoration: none;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+        .footer-links a:hover {
+            color: var(--neon-text);
+        }
+
+        /* Utility classes */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="announcer-layer">
+        <div id="announcerText" class="announcer-text">AWESOME</div>
+        <div id="comboBadge" class="combo-badge hidden">X2 COMBO</div>
+    </div>
+
+    <div class="game-wrapper" id="gameWrapper">
+        
+        <header>
+            <div class="logo">⚡ ZIK BLEST ⚡</div>
+            <div class="top-controls">
+                <button class="icon-btn" id="topMenuBtn">☰ MENU</button>
+                <button class="icon-btn" id="topResetBtn">⟳ RESTART</button>
+            </div>
+        </header>
+
+        <div class="stats-container">
+            <div class="stat-box">
+                <span class="stat-label">Score</span>
+                <span class="stat-value" id="valScore">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Best Score</span>
+                <span class="stat-value" id="valBestScore">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Moves</span>
+                <span class="stat-value" id="valMoves">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Lines Broken</span>
+                <span class="stat-value" id="valLines">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Current Combo</span>
+                <span class="stat-value" id="valCombo">x0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Level</span>
+                <span class="stat-value" id="valLevel">1</span>
+            </div>
+            <div class="level-container">
+                <div style="display:flex; justify-content:space-between; font-size:0.65rem; color:#aaa;">
+                    <span>XP PROGRESS</span>
+                    <span id="valXpText">0 / 100</span>
+                </div>
+                <div class="progress-bar-outer">
+                    <div class="progress-bar-inner" id="valXpBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="board-container" id="boardContainer">
+            <div class="board-grid" id="boardGrid">
+                </div>
+        </div>
+
+        <div class="dock-container" id="dockContainer">
+            <div class="dock-slot" data-slot="0" id="slot0"></div>
+            <div class="dock-slot" data-slot="1" id="slot1"></div>
+            <div class="dock-slot" data-slot="2" id="slot2"></div>
+        </div>
+
+        <div class="ad-banner-placeholder" id="adBanner"></div>
+
+        <div class="footer-links">
+            <a id="btnLinkPrivacy">Privacy Policy</a>
+            <a id="btnLinkTerms">Terms of Service</a>
+            <a id="btnLinkDonate" style="color:var(--neon-accent);">♥ Donate</a>
+            <a id="btnLinkShare">🔗 Share</a>
+        </div>
+    </div>
+
+    <div class="overlay active" id="overlayMain">
+        <h1 class="menu-title" style="color:#fff; text-shadow: var(--neon-glow);">⚡ ZIK BLEST ⚡</h1>
+        <p style="margin-bottom: 25px; color:#aaa; font-size:0.9rem;">Premium Futuristic Block Puzzle</p>
+        <button class="btn btn-accent" id="btnPlay">PLAY GAME</button>
+        <button class="btn" id="btnOpen
